@@ -50,6 +50,7 @@ void client_ls(struct PACKET *, struct THREADINFO);
 void client_cd(struct PACKET *, struct THREADINFO *);
 void client_get(struct PACKET *, struct THREADINFO);
 void client_put(struct PACKET *, struct THREADINFO);
+void client_get_arc(struct PACKET *, struct THREADINFO);
 //void client_quit(struct PACKET *, struct THREADINFO);
 //void getFileNameFromPath(char *);
 

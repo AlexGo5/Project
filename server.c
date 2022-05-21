@@ -116,6 +116,9 @@ void client_handler(void *fd)
 		case PWD:
 			client_pwd(hp, threadinfo);
 			break;
+		case GETARC:
+		    client_get_arc(hp, threadinfo);
+			break;
 		/*case QUIT:
 			client_quit(hp, threadinfo);
 			break;*/
@@ -220,6 +223,55 @@ void client_get(struct PACKET *hp, struct THREADINFO t)
 	strcat(path, hp->data);
 	printf("File:%s\n", path);
 	in = fopen(path, "rb");
+
+	if (!in)
+	{
+
+		hp->flag = ERR;
+		strcpy(hp->data, "Error opening file in server!\n\n");
+		hp->len = strlen(hp->data);
+		np = htonp(hp);
+		sent = send(t.sockfd, np, sizeof(struct PACKET), 0);
+
+		fprintf(stderr, "Error opening file:%s\n\n", hp->data);
+		return;
+	}
+
+	sendFile(hp, t.sockfd, in);
+
+	fclose(in);
+}
+
+void client_get_arc(struct PACKET *hp, struct THREADINFO t)
+{
+	struct PACKET *np;
+	int sent, total_sent = 0;
+	size_t read;
+	FILE *in;
+	char path[496];
+	char *name;
+	name = hp->data;
+	strcpy(path, t.curr_dir);
+	strcat(path, "/");
+	strcat(path, name);
+	printf("File:%s\n", path);
+
+	char newName[256];
+	int i = 0;
+	for(; name[i]!='.' && name[i]!='\0';i++)
+	newName[i] = name[i];
+	newName[i]='\0';
+
+	char tarCommand[256] = "tar -cf ";
+	strcat(tarCommand, newName);        //"tar -cf name"
+	strcat(tarCommand, ".tar.gz ");  //"tar -cf name.tar.gz "
+	strcat(tarCommand, name);        //"tar -cf name.tar.gz path"
+	//printf("%s", tarCommand);
+	system(tarCommand);
+
+	strcat(newName, ".tar.gz");
+
+	in = fopen(newName, "rb");
 
 	if (!in)
 	{

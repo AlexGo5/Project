@@ -30,7 +30,9 @@
 #define CLS 9
 #define CCD 10
 #define QUIT 11
+#define GETARC 12
 #define DATALEN 504
+#define STRHELP "!pwd - Present working directory of client\n!ls - Show directory contents of client\n!cd path - Change client directory\npwd - Present working directory of server. May differ from client to client.\nls - Show server directory contents\ncd path - Change working server directory to that indicated by path\nget fileName - Download file with FileName at the client\nput fileName - Upload file with fileName at the server\nquit - Exit client, and delete related threadinfo\n\n"
 
 //PACKET structure
 struct PACKET{
