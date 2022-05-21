@@ -222,7 +222,7 @@ void client_get(struct PACKET *hp, struct THREADINFO t)
 	strcat(path, "/");
 	strcat(path, hp->data);
 	printf("File:%s\n", path);
-	in = fopen(path, "rb");
+	in = fopen(path, "r+b");
 
 	if (!in)
 	{
@@ -271,7 +271,7 @@ void client_get_arc(struct PACKET *hp, struct THREADINFO t)
 
 	strcat(newName, ".tar.gz");
 
-	in = fopen(newName, "rb");
+	in = fopen(newName, "r+b");
 
 	if (!in)
 	{
@@ -289,6 +289,11 @@ void client_get_arc(struct PACKET *hp, struct THREADINFO t)
 	sendFile(hp, t.sockfd, in);
 
 	fclose(in);
+
+	strcpy(tarCommand, "rm ");
+	strcat(tarCommand, newName);
+	//printf("%s", tarCommand);
+	system(tarCommand);
 }
 
 // put Command...................................................................................................

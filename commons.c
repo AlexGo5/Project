@@ -69,12 +69,12 @@ void sendFile(struct PACKET *hp, int sfd, FILE *fp){
 
 
 //Common function for receiving file
-void recvFile(struct PACKET *hp, struct PACKET *np, int sfd, FILE *out){
+int recvFile(struct PACKET *hp, struct PACKET *np, int sfd, FILE *out){
 	int bytes, total_bytes = 0, j = 0;
 
 	if((bytes = recv(sfd, np, sizeof(struct PACKET), 0)) <= 0){
 		fprintf(stderr, "Error receiving file !!\n");
-		return;
+		return -1;
 	}
 	j++;
 	hp = ntohp(np);
@@ -84,16 +84,16 @@ void recvFile(struct PACKET *hp, struct PACKET *np, int sfd, FILE *out){
 		}
 		if((bytes = recv(sfd, np, sizeof(struct PACKET), 0)) <= 0){
 			fprintf(stderr, "Error receiving file !!\n");
-			return;
+			return -1;
 		}
 		j++;
 		hp = ntohp(np);
 	}
 	
-
 	if(hp->flag == ERR){
 		fprintf(stderr, "Error sending file !!\n");
 	}
 	fprintf(stderr, "%d bytes written\n%d packets received\n",total_bytes, j );
 	fflush(stderr);
+	return total_bytes;
 }

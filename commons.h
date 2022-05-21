@@ -30,21 +30,23 @@
 #define CLS 9
 #define CCD 10
 #define QUIT 11
+#define HELP 103
 #define GETARC 12
 #define DATALEN 504
-#define STRHELP "!pwd - Present working directory of client\n!ls - Show directory contents of client\n!cd path - Change client directory\npwd - Present working directory of server. May differ from client to client.\nls - Show server directory contents\ncd path - Change working server directory to that indicated by path\nget fileName - Download file with FileName at the client\nput fileName - Upload file with fileName at the server\nquit - Exit client, and delete related threadinfo\n\n"
+#define STRHELP "!pwd - Present working directory of client\n!ls - Show directory contents of client\n!cd path - Change client directory\npwd - Present working directory of server. May differ from client to client.\nls - Show server directory contents\ncd path - Change working server directory to that indicated by path\nget fileName - Download file with FileName at the client\ngetArc fileName - Download archive file with FileName at the client\nput fileName - Upload file with fileName at the server\nquit - Exit client, and delete related threadinfo\n\n"
 
-//PACKET structure
-struct PACKET{
+// PACKET structure
+struct PACKET
+{
 	char data[DATALEN];
 	int flag;
 	int len;
 	int commid;
 };
 
-struct PACKET * ntohp(struct PACKET *);
-struct PACKET * htonp(struct PACKET *);
+struct PACKET *ntohp(struct PACKET *);
+struct PACKET *htonp(struct PACKET *);
 
 void sendFile(struct PACKET *, int, FILE *);
 
-void recvFile(struct PACKET *, struct PACKET *, int, FILE *);
+int recvFile(struct PACKET *, struct PACKET *, int, FILE *);

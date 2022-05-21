@@ -93,11 +93,13 @@ int main()
 		case GETARC:
 			server_getArc(uComm, server);
 			break;
+		case HELP:
+			break;
 		case QUIT:
 			// client_QUIT(uComm, server);
 			goto outsideLoop;
 		default:
-			// fprintf(stderr, "Incorrect command..!!\n");
+			fprintf(stderr, "Incorrect command..!!\n");
 			break;
 		}
 	}
@@ -266,8 +268,17 @@ void server_get(struct command *cmd, int sfd)
 		return;
 	}
 
-	recvFile(hp, np, sfd, out);
-	fclose(out);
+	if (!recvFile(hp, np, sfd, out))
+	{
+		fclose(out);
+		char tarCommand[256] = "";
+		strcpy(tarCommand, "rm ");
+		strcat(tarCommand, cmd->fileName);
+		system(tarCommand);
+		printf("\nThis file doesn't exist\n");
+	}
+	else
+		fclose(out);
 }
 
 void server_getArc(struct command *cmd, int sfd)
@@ -275,7 +286,8 @@ void server_getArc(struct command *cmd, int sfd)
 
 	char *name = cmd->fileName;
 	int i = 0;
-	for (; name[i] != '.' && name[i] != '\0'; i++);
+	for (; name[i] != '.' && name[i] != '\0'; i++)
+		;
 	name[i] = '\0';
 	strcat(name, ".tar.gz");
 
@@ -309,11 +321,11 @@ void server_getArc(struct command *cmd, int sfd)
 // PUT Operation.........................................................................................
 void server_put(struct command *cmd, int sfd)
 {
-
-	FILE *in = fopen(cmd->path, "rb");
+	printf("%s\n", cmd->path);
+	FILE *in = fopen(cmd->path, "r+b");
 	if (!in)
 	{
-		fprintf(stderr, "Error opening file. See if pemissions are satisfied !!\n");
+		fprintf(stderr, "Error opening file. See if pemissions are satisfied. Сheck the existence of the file!!\n");
 		return;
 	}
 
@@ -380,6 +392,11 @@ struct command *getUserCommand(char *input)
 	{
 		cmd->id = CCD;
 		option = strtok(NULL, " ");
+		if (!option)
+		{
+			cmd->id = ERR;
+			return cmd;
+		}
 		strcpy(cmd->path, option);
 	}
 
@@ -397,6 +414,11 @@ struct command *getUserCommand(char *input)
 	{
 		cmd->id = CD;
 		option = strtok(NULL, " ");
+		if (!option)
+		{
+			cmd->id = ERR;
+			return cmd;
+		}
 		strcpy(cmd->path, option);
 	}
 
@@ -404,6 +426,11 @@ struct command *getUserCommand(char *input)
 	{
 		cmd->id = GET;
 		option = strtok(NULL, " ");
+		if (!option)
+		{
+			cmd->id = ERR;
+			return cmd;
+		}
 		strcpy(cmd->path, option);
 		while (option != NULL)
 		{
@@ -416,6 +443,11 @@ struct command *getUserCommand(char *input)
 	{
 		cmd->id = GETARC;
 		option = strtok(NULL, " ");
+		if (!option)
+		{
+			cmd->id = ERR;
+			return cmd;
+		}
 		strcpy(cmd->path, option);
 		while (option != NULL)
 		{
@@ -429,6 +461,11 @@ struct command *getUserCommand(char *input)
 	{
 		cmd->id = PUT;
 		option = strtok(NULL, " ");
+		if (!option)
+		{
+			cmd->id = ERR;
+			return cmd;
+		}
 		strcpy(cmd->path, option);
 		while (option != NULL)
 		{
@@ -440,6 +477,7 @@ struct command *getUserCommand(char *input)
 	else if (!strcmp(option, "help"))
 	{
 		printf("%s", STRHELP);
+		cmd->id = HELP;
 	}
 	else if (!strcmp(option, "quit"))
 	{
