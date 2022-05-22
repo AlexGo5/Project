@@ -8,7 +8,6 @@ Contains server specific declarations and function prototypes..
 #include <pthread.h>
 
 #define C_PORT 5555
-#define IP "127.0.0.1"
 #define BACKLOG 20
 #define OPTLEN 10
 #define CLIENTS 2

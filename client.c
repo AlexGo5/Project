@@ -32,6 +32,10 @@ int main()
 		return errno;
 	}*/
 
+    char IPSERVER[100];
+	printf("\nEnter the IP of the server\n");
+	fgets(IPSERVER, 100, stdin);
+
 	memset((char *)&serv_addr, 0, sizeof(struct sockaddr_in));
 	serv_addr.sin_family = AF_INET;
 	serv_addr.sin_addr.s_addr = inet_addr(IPSERVER);
