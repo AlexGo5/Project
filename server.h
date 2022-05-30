@@ -58,3 +58,4 @@ int list_insert(struct LLIST *, struct THREADINFO *);
 int list_delete(struct LLIST *, struct THREADINFO *);
 //void list_dump(struct LLIST *);
 int compare(struct THREADINFO *, struct THREADINFO *);
+char *getIP();

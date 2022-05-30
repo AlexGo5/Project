@@ -5,61 +5,17 @@ Contains server specific function implementations..
 
 #include "server.h"
 
-char *getIP()
-{
-	const char *google_dns_server = "8.8.8.8";
-	int dns_port = 53;
-
-	struct sockaddr_in serv;
-
-	int sock = socket(AF_INET, SOCK_DGRAM, 0);
-
-	// Socket could not be created
-	if (sock < 0)
-	{
-		perror("Socket error");
-		return NULL;
-	}
-
-	memset(&serv, 0, sizeof(serv));
-	serv.sin_family = AF_INET;
-	serv.sin_addr.s_addr = inet_addr(google_dns_server);
-	serv.sin_port = htons(dns_port);
-
-	int err = connect(sock, (const struct sockaddr *)&serv, sizeof(serv));
-
-	struct sockaddr_in name;
-	socklen_t namelen = sizeof(name);
-	err = getsockname(sock, (struct sockaddr *)&name, &namelen);
-
-	char *buffer = (char*)malloc(100);
-	char *p = inet_ntop(AF_INET, &name.sin_addr, buffer, 100);
-
-	if (p != NULL)
-	{
-		//printf("Local ip is : %s \n", buffer);
-		return buffer;
-	}
-	else
-	{
-		// Some error
-		printf("Error number : %d . Error message : %s \n", errno, strerror(errno));
-	}
-
-	close(sock);
-
-	return NULL;
-}
-
 char addr_str[INET_ADDRSTRLEN];
 
 int main(int argc, char *argv[])
 {
+
+	struct PACKET *np, *hp = (struct PACKET *)malloc(sizeof(struct PACKET));
 	struct sockaddr_in serv_addr, client_addr;
 	int sin_size;
 
-    // получение локального IP
-	char* IP = (char*)malloc(100);
+	// получение локального IP
+	char *IP = (char *)malloc(100);
 	IP = getIP();
 
 	/* initialize linked list */
@@ -93,6 +49,9 @@ int main(int argc, char *argv[])
 	}
 
 	printf("\nServer started at port:%d\n", C_PORT);
+
+	// int numClients;
+	// input(numClients);
 	sin_size = sizeof(struct sockaddr_in);
 	while (1)
 	{
@@ -104,9 +63,14 @@ int main(int argc, char *argv[])
 		if (client_list.size == CLIENTS)
 		{
 			fprintf(stderr, "Connection full. Request rejected !!\n");
+			hp->flag = ERR;
+			np = htonp(hp);
+			send(sfd, np, sizeof(struct PACKET), 0);
 			continue;
 		}
-
+		hp->flag = OK;
+		np = htonp(hp);
+		send(sfd, np, sizeof(struct PACKET), 0);
 		void *addr;
 		addr = &(client_addr.sin_addr);
 		inet_ntop(AF_INET, addr, addr_str, sizeof(addr_str));
@@ -127,6 +91,18 @@ int main(int argc, char *argv[])
 
 	return 0;
 }
+
+// void input(int *n)
+// {
+// 	while(1){
+// 		printf("Input number of clients:\n");
+// 		scanf("%d", n);
+// 		if(*n < 1 || 100<*n)
+// 		   printf("\nIncorrect number of clients!\n\n");
+// 		else 
+// 		   return; 
+// 	}
+// }
 
 void client_handler(void *fd)
 {
@@ -177,6 +153,52 @@ void client_handler(void *fd)
 			break;
 		}
 	}
+}
+
+char *getIP()
+{
+	const char *google_dns_server = "8.8.8.8";
+	int dns_port = 53;
+
+	struct sockaddr_in serv;
+
+	int sock = socket(AF_INET, SOCK_DGRAM, 0);
+
+	// Socket could not be created
+	if (sock < 0)
+	{
+		perror("Socket error");
+		return NULL;
+	}
+
+	memset(&serv, 0, sizeof(serv));
+	serv.sin_family = AF_INET;
+	serv.sin_addr.s_addr = inet_addr(google_dns_server);
+	serv.sin_port = htons(dns_port);
+
+	int err = connect(sock, (const struct sockaddr *)&serv, sizeof(serv));
+
+	struct sockaddr_in name;
+	socklen_t namelen = sizeof(name);
+	err = getsockname(sock, (struct sockaddr *)&name, &namelen);
+
+	char *buffer = (char *)malloc(100);
+	char *p = inet_ntop(AF_INET, &name.sin_addr, buffer, 100);
+
+	if (p != NULL)
+	{
+		// printf("Local ip is : %s \n", buffer);
+		return buffer;
+	}
+	else
+	{
+		// Some error
+		printf("Error number : %d . Error message : %s \n", errno, strerror(errno));
+	}
+
+	close(sock);
+
+	return NULL;
 }
 
 // pwd Command...............................................................................................
@@ -276,9 +298,7 @@ void client_get(struct PACKET *hp, struct THREADINFO t)
 
 	if (!in)
 	{
-
 		hp->flag = ERR;
-		strcpy(hp->data, "Error opening file in server!\n\n");
 		hp->len = strlen(hp->data);
 		np = htonp(hp);
 		sent = send(t.sockfd, np, sizeof(struct PACKET), 0);
@@ -287,6 +307,11 @@ void client_get(struct PACKET *hp, struct THREADINFO t)
 		return;
 	}
 
+	hp->flag = OK;
+	hp->len = strlen(hp->data);
+	np = htonp(hp);
+	sent = send(t.sockfd, np, sizeof(struct PACKET), 0);
+
 	sendFile(hp, t.sockfd, in);
 
 	fclose(in);
@@ -294,7 +319,6 @@ void client_get(struct PACKET *hp, struct THREADINFO t)
 
 void client_get_arc(struct PACKET *hp, struct THREADINFO t)
 {
-	struct PACKET *np;
 	int sent, total_sent = 0;
 	size_t read;
 	FILE *in;
@@ -305,6 +329,22 @@ void client_get_arc(struct PACKET *hp, struct THREADINFO t)
 	strcat(path, "/");
 	strcat(path, name);
 	printf("File:%s\n", path);
+
+	//in = fopen(path, "r+b");
+
+	// if (!in)
+	// {
+
+	// 	hp->flag = ERR;
+	// 	strcpy(hp->data, "Error opening file in server!");
+	// 	hp->len = strlen(hp->data);
+	// 	np = htonp(hp);
+	// 	sent = send(t.sockfd, np, sizeof(struct PACKET), 0);
+
+	// 	fprintf(stderr, "Error opening file:%s", hp->data);
+	// 	return;
+	// }
+	// fclose(in);
 
 	char newName[256];
 	int i = 0;
@@ -325,14 +365,7 @@ void client_get_arc(struct PACKET *hp, struct THREADINFO t)
 
 	if (!in)
 	{
-
-		hp->flag = ERR;
-		strcpy(hp->data, "Error opening file in server!\n\n");
-		hp->len = strlen(hp->data);
-		np = htonp(hp);
-		sent = send(t.sockfd, np, sizeof(struct PACKET), 0);
-
-		fprintf(stderr, "Error opening file:%s\n\n", hp->data);
+		fprintf(stderr, "Error opening file:%s", hp->data);
 		return;
 	}
 
@@ -363,12 +396,12 @@ void client_put(struct PACKET *hp, struct THREADINFO t)
 	{
 
 		hp->flag = ERR;
-		strcpy(hp->data, "Error creating file in server!\n\n");
+		strcpy(hp->data, "Error creating file in server!");
 		hp->len = strlen(hp->data);
 		np = htonp(hp);
 		bytes = send(t.sockfd, np, sizeof(struct PACKET), 0);
 
-		fprintf(stderr, "Error creating file:%s\n\n", hp->data);
+		fprintf(stderr, "Error creating file:%s", hp->data);
 		// return;
 	}
 	else

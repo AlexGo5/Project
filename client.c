@@ -22,17 +22,7 @@ int main()
 		return errno;
 	}
 
-	/*serv_addr.sin_family = AF_INET;
-	serv_addr.sin_port = htons(C_PORT);
-	serv_addr.sin_addr.s_addr = inet_addr(IP);
-	memset(&(serv_addr.sin_zero), 0, 8);
-
-	if(bind(server, (struct sockaddr *)&serv_addr, sizeof(struct sockaddr)) == -1){
-		printf("Error binding control socket to port %d : Returning error No:%d\n", C_PORT, errno);
-		return errno;
-	}*/
-
-    char IPSERVER[100];
+	char IPSERVER[100];
 	printf("\nEnter the IP of the server\n");
 	fgets(IPSERVER, 100, stdin);
 
@@ -49,13 +39,24 @@ int main()
 		return errno;
 	}
 
+	struct PACKET *hp;
+	np = (struct PACKET *)malloc(sizeof(struct PACKET));
+	recv(server, np, sizeof(struct PACKET), 0);
+	hp = ntohp(np);
+	if(hp->flag == ERR)
+	{
+		printf("\nAccess denied. Server is full.\n");
+		return 0;
+	}
 	printf("FTP Client started : \n\n"); // User message
 	char userInput[U_INPUTLEN];
 	while (1)
 	{
-		printf("ftp>");
+		printf("\nftp>");
 		fgets(userInput, U_INPUTLEN, stdin); // User input
 		char *pos;
+		if (userInput[0] == '\n')
+			goto def;
 		if ((pos = strchr(userInput, '\n')) != NULL)
 			*pos = '\0';
 		uComm = getUserCommand(userInput); // For parsing user input and entering information into the command structure
@@ -103,6 +104,7 @@ int main()
 			// client_QUIT(uComm, server);
 			goto outsideLoop;
 		default:
+		def:
 			fprintf(stderr, "Incorrect command..!!\n");
 			break;
 		}
@@ -272,7 +274,30 @@ void server_get(struct command *cmd, int sfd)
 		return;
 	}
 
-	if (!recvFile(hp, np, sfd, out))
+	if ((bytes = recv(sfd, np, sizeof(struct PACKET), 0)) <= 0)
+	{
+		fprintf(stderr, "Error receiving packets !!\n");
+		fclose(out);
+		char tarCommand[256] = "";
+		strcpy(tarCommand, "rm ");
+		strcat(tarCommand, cmd->fileName);
+		system(tarCommand);
+		printf("\nThis file doesn't exist\n");
+		return;
+	}
+
+	hp = ntohp(np);
+	if (hp->flag == ERR)
+	{
+		fclose(out);
+		char tarCommand[256] = "";
+		strcpy(tarCommand, "rm ");
+		strcat(tarCommand, cmd->fileName);
+		system(tarCommand);
+		printf("\nThis file doesn't exist\n");
+		return;
+	}
+	else if (!recvFile(hp, np, sfd, out))
 	{
 		fclose(out);
 		char tarCommand[256] = "";
@@ -318,8 +343,17 @@ void server_getArc(struct command *cmd, int sfd)
 		return;
 	}
 
-	recvFile(hp, np, sfd, out);
-	fclose(out);
+	if (!recvFile(hp, np, sfd, out))
+	{
+		fclose(out);
+		char tarCommand[256] = "";
+		strcpy(tarCommand, "rm ");
+		strcat(tarCommand, name);
+		system(tarCommand);
+		printf("\nThis file doesn't exist\n");
+	}
+	else
+		fclose(out);
 }
 
 // PUT Operation.........................................................................................
@@ -487,8 +521,6 @@ struct command *getUserCommand(char *input)
 	{
 		cmd->id = QUIT;
 	}
-	else
-		fprintf(stderr, "Incorrect command !!\n\n");
 
 	return cmd;
 }
