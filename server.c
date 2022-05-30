@@ -99,8 +99,8 @@ int main(int argc, char *argv[])
 // 		scanf("%d", n);
 // 		if(*n < 1 || 100<*n)
 // 		   printf("\nIncorrect number of clients!\n\n");
-// 		else 
-// 		   return; 
+// 		else
+// 		   return;
 // 	}
 // }
 
@@ -214,6 +214,38 @@ void client_pwd(struct PACKET *hp, struct THREADINFO t)
 	sent = send(t.sockfd, np, sizeof(struct PACKET), 0);
 }
 
+void correct_send(int sfd, struct PACKET *np, struct PACKET *hp)
+{
+
+	struct PACKET *hpx = (struct PACKET *)malloc(sizeof(struct PACKET));
+	struct PACKET *npx = (struct PACKET *)malloc(sizeof(struct PACKET));
+
+	while (1)
+	{
+		send(sfd, np, sizeof(struct PACKET), 0);
+		recv(sfd, np, sizeof(struct PACKET), 0);
+		hpx = ntohp(np);
+		if (hp->flag == hpx->flag && hp->len == hpx->len)
+		{
+			if (hp->flag == OK)
+				hpx->flag = END;
+			else
+			    hpx->flag = hp->flag;
+			npx = htonp(hpx);
+			send(sfd, npx, sizeof(struct PACKET), 0);
+			break;
+		}
+		else
+		{
+			hpx->flag = OK;
+			npx = htonp(hpx);
+			send(sfd, npx, sizeof(struct PACKET), 0);
+		}
+	}
+	free(hpx);
+	free(npx);
+}
+
 // ls Command.................................................................................................
 void client_ls(struct PACKET *hp, struct THREADINFO t)
 {
@@ -233,13 +265,13 @@ void client_ls(struct PACKET *hp, struct THREADINFO t)
 			hp->flag = OK;
 			hp->len = strlen(hp->data);
 			np = htonp(hp);
-			sent = send(t.sockfd, np, sizeof(struct PACKET), 0);
+			correct_send(t.sockfd, np, hp);
 		}
 		hp->flag = DONE;
 		strcpy(hp->data, "");
 		hp->len = strlen(hp->data);
 		np = htonp(hp);
-		sent = send(t.sockfd, np, sizeof(struct PACKET), 0);
+		correct_send(t.sockfd, np, hp);
 	}
 	else
 		hp->flag = ERR;
@@ -249,8 +281,9 @@ void client_ls(struct PACKET *hp, struct THREADINFO t)
 		strcpy(hp->data, "Error processing 'ls' command at server..!!\n\n");
 		hp->len = strlen(hp->data);
 		np = htonp(hp);
-		sent = send(t.sockfd, np, sizeof(struct PACKET), 0);
-		// exit(1);
+		correct_send(t.sockfd, np, hp);
+		// sent = send(t.sockfd, np, sizeof(struct PACKET), 0);
+		//  exit(1);
 	}
 }
 
@@ -330,7 +363,7 @@ void client_get_arc(struct PACKET *hp, struct THREADINFO t)
 	strcat(path, name);
 	printf("File:%s\n", path);
 
-	//in = fopen(path, "r+b");
+	// in = fopen(path, "r+b");
 
 	// if (!in)
 	// {

@@ -43,7 +43,7 @@ int main()
 	np = (struct PACKET *)malloc(sizeof(struct PACKET));
 	recv(server, np, sizeof(struct PACKET), 0);
 	hp = ntohp(np);
-	if(hp->flag == ERR)
+	if (hp->flag == ERR)
 	{
 		printf("\nAccess denied. Server is full.\n");
 		return 0;
@@ -183,6 +183,20 @@ void server_pwd(int sfd)
 	printf("Current Server directory :\n%s\n", hp->data);
 }
 
+struct PACKET* correct_receive(int sfd, struct PACKET *np, struct PACKET *hp)
+{
+	while (1)
+	{
+		recv(sfd, np, sizeof(struct PACKET), 0);
+		send(sfd, np, sizeof(struct PACKET), 0);
+		recv(sfd, np, sizeof(struct PACKET), 0);
+		hp = ntohp(np);
+		if (hp->flag == END || hp->flag == DONE || hp->flag == ERR)
+			break;
+	}
+	return hp;
+}
+
 // Server side ls...............................................................................
 void server_ls(int sfd)
 {
@@ -200,22 +214,18 @@ void server_ls(int sfd)
 		return;
 	}
 
-	if ((bytes = recv(sfd, np, size_packet, 0)) <= 0)
+	// if ((bytes = recv(sfd, np, size_packet, 0)) <= 0)
+	// {
+	// 	fprintf(stderr, "Error receiving packet !!\n");
+	// 	return;
+	// }
+	// hp = ntohp(np);
+	do
 	{
-		fprintf(stderr, "Error receiving packet !!\n");
-		return;
-	}
-	hp = ntohp(np);
-	while (hp->flag != DONE)
-	{
+		hp = correct_receive(sfd, np, hp);
 		printf("%s\n", hp->data);
-		if ((bytes = recv(sfd, np, size_packet, 0)) <= 0)
-		{
-			fprintf(stderr, "Error receiving packet !!\n");
-			return;
-		}
-		hp = ntohp(np);
-	}
+		//printf("%d\n", hp->flag);
+	}while (hp->flag != DONE && hp->flag != ERR);
 }
 
 // Server side cd................................................................................
